@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  reporter
+  officer
+  admin
+}
+
+enum OfficerRole {
+  social_worker
+  police_dovvsu
+  labour_inspector
+  ngo_agent
+}
+
+enum CaseStatus {
+  submitted
+  assigned
+  investigating
+  intervention
+  resolved
+}
+
+enum CasePriority {
+  low
+  medium
+  high
+  critical
+}
+
+enum CaseType {
+  child_labour_agriculture
+  child_labour_fishing
+  child_labour_mining
+  child_labour_domestic
+  child_labour_manufacturing
+  child_labour_street
+  trafficking_labour
+  trafficking_sexual
+  trafficking_domestic
+  neglect
+  early_marriage
+  physical_abuse
+}
+
+enum Gender {
+  male
+  female
+  unknown
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String?
+  phone        String?   @unique
+  email        String?   @unique
+  passwordHash String?
+  role         UserRole  @default(reporter)
+  isAnonymous  Boolean   @default(false)
+  expoPushToken String?
+  officer      Officer?
+  cases        Case[]    @relation("ReporterCases")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Officer {
+  id                String      @id @default(cuid())
+  name              String
+  badge             String      @unique
+  district          String
+  region            String
+  role              OfficerRole
+  languages         String[]
+  phone             String
+  caseload          Int         @default(0)
+  resolvedThisMonth Int         @default(0)
+  user              User?       @relation(fields: [userId], references: [id])
+  userId            String?     @unique
+  assignedCases     Case[]      @relation("AssignedCases")
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
+
+model Case {
+  id                  String          @id @default(cuid())
+  caseNumber          String          @unique
+  type                CaseType
+  childAge            Int
+  childGender         Gender
+  district            String
+  region              String
+  lat                 Float
+  lng                 Float
+  locationDescription String?
+  description         String
+  photos              String[]
+  isAnonymous         Boolean         @default(false)
+  isEmergency         Boolean         @default(false)
+  status              CaseStatus      @default(submitted)
+  priority            CasePriority    @default(medium)
+  riskScore           Int             @default(0)
+  reporter            User?           @relation("ReporterCases", fields: [reporterId], references: [id])
+  reporterId          String?
+  assignedOfficer     Officer?        @relation("AssignedCases", fields: [assignedOfficerId], references: [id])
+  assignedOfficerId   String?
+  timeline            TimelineEvent[]
+  reportedAt          DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+}
+
+model TimelineEvent {
+  id            String     @id @default(cuid())
+  case          Case       @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  caseId        String
+  status        CaseStatus
+  timestamp     DateTime   @default(now())
+  title         String
+  description   String
+  officerName   String?
+  isSystemEvent Boolean    @default(true)
+}
