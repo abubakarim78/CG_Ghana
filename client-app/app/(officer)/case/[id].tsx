@@ -524,7 +524,7 @@ export default function CaseDetailScreen() {
                 activeOpacity={0.75}
               >
                 <View style={styles.evidenceAddIconWrap}>
-                  <Plus size={20} color={COLORS.primary[500]} strokeWidth={2} />
+                  <Plus size={24} color={COLORS.primary[400]} strokeWidth={2} />
                 </View>
                 <Text style={styles.evidenceAddText}>Add Photo</Text>
               </TouchableOpacity>
@@ -916,6 +916,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: SPACING.sm,
     marginBottom: SPACING.md,
+    justifyContent: 'center',
   },
   evidencePhotoWrap: {
     width: '47%',
@@ -963,20 +964,21 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: SPACING.xs,
+    gap: SPACING.sm,
   },
   evidenceAddIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(14,143,168,0.12)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(14,143,168,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   evidenceAddText: {
-    fontFamily: FONTS.body,
-    fontSize: 12,
-    color: COLORS.primary[500],
+    fontFamily: FONTS.bodySemi,
+    fontSize: 13,
+    color: COLORS.primary[400],
+    letterSpacing: 0.2,
   },
   evidenceActions: {
     flexDirection: 'row',

@@ -1,7 +1,23 @@
-let counter = 1;
+import { PrismaClient } from '@prisma/client';
 
-export function generateCaseNumber(): string {
+const prisma = new PrismaClient();
+
+export async function generateCaseNumber(): Promise<string> {
   const year = new Date().getFullYear();
-  const seq = String(counter++).padStart(5, '0');
-  return `CG-${year}-${seq}`;
+  const prefix = `CG-${year}-`;
+
+  // Find the highest existing sequence for this year to avoid collisions after restarts
+  const last = await prisma.case.findFirst({
+    where: { caseNumber: { startsWith: prefix } },
+    orderBy: { caseNumber: 'desc' },
+    select: { caseNumber: true },
+  });
+
+  let seq = 1;
+  if (last?.caseNumber) {
+    const parsed = parseInt(last.caseNumber.slice(prefix.length), 10);
+    if (!isNaN(parsed)) seq = parsed + 1;
+  }
+
+  return `${prefix}${String(seq).padStart(5, '0')}`;
 }

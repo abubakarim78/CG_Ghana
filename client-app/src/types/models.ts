@@ -45,6 +45,7 @@ export interface CaseTimelineEvent {
 
 export interface Case {
   id: string;
+  caseNumber?: string;
   type: CaseType;
   childAge: number;
   childGender: Gender;

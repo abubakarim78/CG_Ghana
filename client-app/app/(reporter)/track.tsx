@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import {
   Search,
   Clock,
@@ -35,49 +35,59 @@ import { COLORS, FONTS, TYPOGRAPHY, SPACING, RADIUS } from '../../src/theme';
 type TabId = 'my_reports' | 'track_by_id';
 
 export default function TrackScreen() {
+  const params = useLocalSearchParams<{ prefill?: string }>();
+
   const [activeTab, setActiveTab] = useState<TabId>('my_reports');
-  const [searchId, setSearchId] = useState('');
+  const [searchId, setSearchId] = useState(params.prefill ?? '');
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [foundCase, setFoundCase] = useState<Case | null>(null);
   const [lastSynced] = useState<Date>(new Date());
 
   const { myReports } = useReportsStore();
-  const { cases, loadCases, getCaseById } = useCasesStore();
+  const { fetchCaseById } = useCasesStore();
 
+  // If arriving from SOS with a prefill, switch to search tab and auto-search
   useEffect(() => {
-    if (cases.length === 0) loadCases();
-  }, []);
+    if (params.prefill) {
+      setActiveTab('track_by_id');
+    }
+  }, [params.prefill]);
 
-  function handleSearch() {
+  async function handleSearch() {
     const trimmed = searchId.trim().toUpperCase();
     if (!trimmed) {
       setSearchError('Please enter a case ID.');
       return;
     }
 
-    // Accept both "CG-00001" and bare numeric "1"
-    const normalised = trimmed.startsWith('CG-')
-      ? trimmed
-      : `CG-${trimmed.padStart(5, '0')}`;
-
     setIsSearching(true);
     setSearchError('');
     setFoundCase(null);
 
-    // Simulate async lookup
-    setTimeout(() => {
-      // First check user's own reports, then the full cases store
-      const result =
-        myReports.find((r) => r.id === normalised) ?? getCaseById(normalised);
+    try {
+      // Check the reporter's own submitted reports first (works offline)
+      const local = myReports.find(
+        (r) => r.id === trimmed || r.caseNumber === trimmed
+      );
+      if (local) {
+        setFoundCase(local);
+        setIsSearching(false);
+        return;
+      }
 
+      // Fall back to API lookup (supports both internal id and case number)
+      const result = await fetchCaseById(trimmed);
       setIsSearching(false);
       if (result) {
         setFoundCase(result);
       } else {
-        setSearchError(`No case found for "${normalised}". Check the ID and try again.`);
+        setSearchError(`No case found for "${trimmed}". Check the ID and try again.`);
       }
-    }, 600);
+    } catch {
+      setIsSearching(false);
+      setSearchError('Search failed. Check your connection and try again.');
+    }
   }
 
   return (

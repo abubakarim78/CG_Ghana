@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MotiView, AnimatePresence } from 'moti';
 import { router } from 'expo-router';
 import { useReportsStore, useAuthStore, useOfflineStore } from '../../src/store';
+import { api } from '../../src/services/api';
 import { GlassCard } from '../../src/components/glass/GlassCard';
 import { GlassButton } from '../../src/components/glass/GlassButton';
 import { GlassInput } from '../../src/components/glass/GlassInput';
@@ -89,6 +90,7 @@ const DEMO_TRANSCRIPTION =
 
 export default function ReportScreen() {
   const { addReport } = useReportsStore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Step state
   const [currentStep, setCurrentStep] = useState(0);
@@ -297,73 +299,85 @@ export default function ReportScreen() {
   // ---------------------------------------------------------------------------
 
   async function handleSubmit() {
-    const newId = await getNextCaseId();
+    // Client-side validation — catch common issues before hitting the network
+    if (!selectedType) {
+      Alert.alert('Missing Case Type', 'Please go back to Step 1 and select a case type.');
+      return;
+    }
+    if (!description.trim()) {
+      Alert.alert('Missing Description', 'Please describe what you observed in Step 3 before submitting.');
+      return;
+    }
+    if (childAge < 0 || childAge > 17) {
+      Alert.alert('Invalid Age', 'Child age must be between 0 and 17.');
+      return;
+    }
 
-    const districtObj = GHANA_DISTRICTS.find((d) => d.name === selectedDistrict);
-    const location: GhanaLocation = {
-      district: selectedDistrict || 'Unknown',
-      region: districtObj?.region ?? 'Unknown',
-      lat: districtObj?.lat ?? 5.6037,
-      lng: districtObj?.lng ?? -0.187,
-      description: locationText || undefined,
-    };
+    setIsSubmitting(true);
+    try {
+      const districtObj = GHANA_DISTRICTS.find((d) => d.name === selectedDistrict);
+      const coords = mapCoords ?? {
+        lat: districtObj?.lat ?? 5.6037,
+        lng: districtObj?.lng ?? -0.187,
+      };
 
-    const draft = {
-      type: selectedType ?? undefined,
-      isEmergency,
-      childAge,
-      childGender,
-      childDescription,
-      description,
-      photos,
-      isAnonymous,
-      dangerTriage,
-      locationText,
-    };
+      const location: GhanaLocation = {
+        district: selectedDistrict || 'Unknown',
+        region: districtObj?.region ?? 'Unknown',
+        lat: coords.lat,
+        lng: coords.lng,
+        description: locationText || undefined,
+      };
 
-    const autoEscalate = shouldAutoEscalate(draft as any);
-    const priority =
-      riskScore >= 75
-        ? 'critical'
-        : riskScore >= 50
-        ? 'high'
-        : riskScore >= 25
-        ? 'medium'
-        : 'low';
+      // Upload photos to Cloudinary; skip any that fail so submission isn't blocked
+      const uploadedUrls: string[] = [];
+      for (const uri of photos) {
+        try {
+          const { url } = await api.upload.photo(uri);
+          uploadedUrls.push(url);
+        } catch {
+          // non-fatal — continue without this photo
+        }
+      }
 
-    const now = new Date().toISOString();
+      const autoEscalate = shouldAutoEscalate({
+        type: selectedType,
+        isEmergency,
+        childAge,
+        childGender,
+        description,
+        photos,
+        isAnonymous,
+        dangerTriage,
+      } as any);
 
-    addReport({
-      id: newId,
-      type: selectedType!,
-      childAge,
-      childGender,
-      location,
-      description,
-      photos,
-      isAnonymous,
-      isEmergency: isEmergency || autoEscalate,
-      status: 'submitted',
-      priority: priority as any,
-      riskScore,
-      reportedAt: now,
-      updatedAt: now,
-      timeline: [
-        {
-          id: `${newId}-t1`,
-          status: 'submitted',
-          timestamp: now,
-          title: 'Case Submitted',
-          description: 'Report received by ChildGuard Ghana system.',
-          isSystemEvent: true,
-        },
-      ],
-    });
+      const newCase = await api.cases.submit({
+        type: selectedType,
+        childAge,
+        childGender,
+        location,
+        description,
+        photos: uploadedUrls,
+        isAnonymous,
+        isEmergency: isEmergency || autoEscalate,
+        dangerTriage,
+      });
 
-    router.push({
-      pathname: '/(reporter)/submitted',
-      params: { caseId: newId },
-    });
+      // Persist to local store so it shows on the Track screen immediately
+      addReport(newCase);
+
+      router.push({
+        pathname: '/(reporter)/submitted',
+        params: { caseId: newCase.caseNumber ?? newCase.id },
+      });
+    } catch (err: any) {
+      Alert.alert(
+        'Submission Failed',
+        err.message ?? 'Please check your connection and try again.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -959,12 +973,13 @@ export default function ReportScreen() {
 
         {/* Submit */}
         <GlassButton
-          label="Submit Report"
+          label={isSubmitting ? 'Submitting...' : 'Submit Report'}
           variant="primary"
           size="lg"
           onPress={handleSubmit}
+          disabled={isSubmitting}
           style={styles.submitButton}
-          icon={<CheckCircle size={18} color={COLORS.text.primary} />}
+          icon={isSubmitting ? <ActivityIndicator size="small" color={COLORS.text.primary} /> : <CheckCircle size={18} color={COLORS.text.primary} />}
         />
 
         <Text style={styles.submitDisclaimer}>

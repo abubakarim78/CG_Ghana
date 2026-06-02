@@ -20,17 +20,44 @@ export const authService = {
     if (existing) throw Object.assign(new Error('Phone already registered'), { status: 409 });
 
     const passwordHash = await bcrypt.hash(data.password, 12);
-    const user = await prisma.user.create({
-      data: {
-        name: data.name,
-        phone: data.phone,
-        passwordHash,
-        role: data.role ?? 'reporter',
-      },
+    const role = data.role ?? 'reporter';
+
+    const user = await prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: { name: data.name, phone: data.phone, passwordHash, role },
+      });
+
+      // Auto-create a linked Officer record so the user appears in assignment lists.
+      // Badge and district are placeholders — admin can update via PATCH /api/officers/:id.
+      if (role === 'officer') {
+        const badge = `TMP-${newUser.id.slice(-6).toUpperCase()}`;
+        await tx.officer.create({
+          data: {
+            name: data.name,
+            badge,
+            district: 'Unassigned',
+            region: 'Unassigned',
+            role: 'social_worker',
+            languages: ['English'],
+            phone: data.phone,
+            userId: newUser.id,
+          },
+        });
+      }
+
+      return newUser;
     });
 
+    // Fetch the linked officer id (if created)
+    const officer = role === 'officer'
+      ? await prisma.officer.findUnique({ where: { userId: user.id }, select: { id: true } })
+      : null;
+
     const token = signToken({ sub: user.id, role: user.role, isAnonymous: false });
-    return { token, user: { id: user.id, name: user.name, role: user.role } };
+    return {
+      token,
+      user: { id: user.id, name: user.name, role: user.role, officerId: officer?.id },
+    };
   },
 
   async login(phone: string, password: string) {

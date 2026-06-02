@@ -133,7 +133,7 @@ function AssignCasesModal({ visible, onClose }: AssignCasesModalProps) {
                   <View key={c.id} style={modalStyles.caseCard}>
                     {/* Case info row */}
                     <View style={modalStyles.caseInfoRow}>
-                      <Text style={modalStyles.caseId}>{c.id}</Text>
+                      <Text style={modalStyles.caseId} numberOfLines={1}>{(c as any).caseNumber ?? c.id}</Text>
                       <View style={[modalStyles.statusBadge, { borderColor: statusColor }]}>
                         <Text style={[modalStyles.statusBadgeText, { color: statusColor }]}>
                           {c.status.toUpperCase()}

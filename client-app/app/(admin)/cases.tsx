@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -51,7 +51,12 @@ const PRIORITY_ORDER: Record<CasePriority, number> = {
 };
 
 export default function AdminCasesScreen() {
-  const { cases, officers, updateCaseStatus, assignOfficer } = useCasesStore();
+  const { cases, officers, loadCases, loadOfficers, updateCaseStatus, assignOfficer } = useCasesStore();
+
+  useEffect(() => {
+    loadCases();
+    loadOfficers();
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<CaseStatus | 'all'>('all');
@@ -98,13 +103,8 @@ export default function AdminCasesScreen() {
     officerId: string,
     officerName: string
   ) {
-    updateCaseStatus(
-      caseId,
-      'assigned',
-      `Assigned to ${officerName} by admin`,
-      officerName
-    );
-    if (officerId) assignOfficer?.(caseId, officerId);
+    // assignOfficer handles status update server-side — no need for updateCaseStatus
+    assignOfficer(caseId, officerId);
     setSessionAssigned((prev) => ({ ...prev, [caseId]: officerName }));
     setExpandedCaseId(null);
   }
@@ -264,7 +264,7 @@ export default function AdminCasesScreen() {
                     <View style={styles.caseCardInner}>
                       {/* Header row */}
                       <View style={styles.caseHeaderRow}>
-                        <Text style={styles.caseId}>{c.id}</Text>
+                        <Text style={styles.caseId} numberOfLines={1}>{c.caseNumber ?? c.id}</Text>
                         <View style={styles.badgeRow}>
                           <View
                             style={[

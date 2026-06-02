@@ -205,7 +205,7 @@ export default function LoginScreen() {
               />
               <TextInput
                 style={[styles.input, styles.inputFlex]}
-                placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                placeholder="Enter your password"
                 placeholderTextColor={COLORS.text.muted}
                 secureTextEntry={!showPassword}
                 value={password}

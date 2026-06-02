@@ -48,28 +48,28 @@ export const officersService = {
   },
 
   async findNearest(lat: number, lng: number, region?: string) {
-    const officers = await prisma.officer.findMany({
-      where: {
-        ...(region && { region }),
-        caseload: { lt: 20 },
-      },
-      include: { user: { select: { id: true, expoPushToken: true } } },
-    });
+    const PLACEHOLDER_REGIONS = ['Unassigned', 'Unknown', ''];
+    const useRegionFilter = region && !PLACEHOLDER_REGIONS.includes(region);
+
+    // Try region-specific officers first
+    let officers = useRegionFilter
+      ? await prisma.officer.findMany({
+          where: { region, caseload: { lt: 20 } },
+          include: { user: { select: { id: true, expoPushToken: true } } },
+        })
+      : [];
+
+    // Fall back to any available officer platform-wide
+    if (!officers.length) {
+      officers = await prisma.officer.findMany({
+        where: { caseload: { lt: 20 } },
+        include: { user: { select: { id: true, expoPushToken: true } } },
+      });
+    }
 
     if (!officers.length) return null;
 
-    // Haversine-based nearest (computed in JS since PostGIS isn't required)
-    function dist(aLat: number, aLng: number, bLat: number, bLng: number): number {
-      const R = 6371;
-      const dLat = ((bLat - aLat) * Math.PI) / 180;
-      const dLng = ((bLng - aLng) * Math.PI) / 180;
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos((aLat * Math.PI) / 180) * Math.cos((bLat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-
-    // Officers don't have coordinates, so sort by caseload as proxy when district/region matches
+    // Return the officer with the lowest active caseload
     return officers.sort((a, b) => a.caseload - b.caseload)[0];
   },
 };

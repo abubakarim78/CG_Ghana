@@ -186,6 +186,7 @@ export default function EmergencyModal() {
     phase,
     description,
     assignedOfficerName,
+    caseNumber,
     setDescription,
     triggerSOS,
     reset,
@@ -422,13 +423,17 @@ export default function EmergencyModal() {
               style={styles.trackBtn}
               activeOpacity={0.8}
               onPress={() => {
+                const cn = caseNumber;
                 reset();
                 router.back();
-                // Navigate to case tracking after dismissal
-                router.push('/(reporter)/cases' as any);
+                // Navigate to the Track screen; the case is already in myReports
+                router.push({
+                  pathname: '/(reporter)/track',
+                  params: cn ? { prefill: cn } : {},
+                } as any);
               }}
             >
-              <Text style={styles.trackBtnText}>Go to Case Tracking</Text>
+              <Text style={styles.trackBtnText}>Track This Case</Text>
             </TouchableOpacity>
           </MotiView>
         </View>

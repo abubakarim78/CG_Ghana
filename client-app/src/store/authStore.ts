@@ -1,17 +1,9 @@
 import { create } from 'zustand';
-
-export interface RegisterUserPayload {
-  name: string;
-  email: string;
-  password: string;
-  role: 'reporter' | 'officer' | 'admin';
-  badgeNumber?: string;
-  district?: string;
-}
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { User } from '../types/models';
+import { User, UserRole } from '../types/models';
 import { api, storeToken, clearStoredToken } from '../services/api';
+import { useReportsStore } from './reportsStore';
 
 interface AuthState {
   user: User | null;
@@ -22,10 +14,8 @@ interface AuthState {
   isLoading: boolean;
   authError: string | null;
   login: (phone: string, password: string) => Promise<void>;
-  register: (name: string, phone: string, password: string) => Promise<void>;
+  register: (name: string, phone: string, password: string, role?: UserRole) => Promise<void>;
   loginAnonymous: () => Promise<void>;
-  registerUser: (payload: RegisterUserPayload) => Promise<{ success: boolean; error?: string }>;
-  loginWithCredentials: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   setAnonymousMode: (value: boolean) => void;
   toggleDisguiseMode: () => void;
@@ -36,7 +26,7 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
       isAnonymousMode: false,
       disguiseMode: false,
@@ -45,7 +35,7 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       authError: null,
 
-      login: async (phone: string, password: string) => {
+      login: async (phone, password) => {
         set({ isLoading: true, authError: null });
         try {
           const { token, user } = await api.auth.login(phone, password);
@@ -60,13 +50,13 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      register: async (name: string, phone: string, password: string) => {
+      register: async (name, phone, password, role = 'reporter') => {
         set({ isLoading: true, authError: null });
         try {
-          const { token, user } = await api.auth.register({ name, phone, password });
+          const { token, user } = await api.auth.register({ name, phone, password, role });
           await storeToken(token);
           set({
-            user: { id: user.id, name: user.name ?? name, role: user.role },
+            user: { id: user.id, name: user.name ?? name, role: user.role, officerId: user.officerId },
             isLoading: false,
           });
         } catch (err: any) {
@@ -80,6 +70,8 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { token, user } = await api.auth.anonymous();
           await storeToken(token);
+          // fresh anonymous session — clear any cached reports from previous sessions
+          useReportsStore.getState().clearMyReports();
           set({
             user: { id: user.id, name: 'Anonymous Reporter', role: 'reporter', isAnonymous: true },
             isAnonymousMode: true,
@@ -93,32 +85,15 @@ export const useAuthStore = create<AuthState>()(
 
       signOut: async () => {
         await clearStoredToken();
+        useReportsStore.getState().clearMyReports();
         set({ user: null, isAnonymousMode: false });
       },
 
-      setAnonymousMode: (value: boolean) => set({ isAnonymousMode: value }),
+      setAnonymousMode: (value) => set({ isAnonymousMode: value }),
       toggleDisguiseMode: () => set((state) => ({ disguiseMode: !state.disguiseMode })),
-      setLanguage: (lang: 'en' | 'tw' | 'ga') => set({ language: lang }),
+      setLanguage: (lang) => set({ language: lang }),
       setOnboarded: () => set({ isOnboarded: true }),
       clearAuthError: () => set({ authError: null }),
-
-      registerUser: async (payload: RegisterUserPayload) => {
-        try {
-          await get().register(payload.name, payload.email, payload.password);
-          return { success: true };
-        } catch (err: any) {
-          return { success: false, error: err.message ?? 'Registration failed' };
-        }
-      },
-
-      loginWithCredentials: async (email: string, password: string) => {
-        try {
-          await get().login(email, password);
-          return { success: true };
-        } catch (err: any) {
-          return { success: false, error: err.message ?? 'Login failed' };
-        }
-      },
     }),
     {
       name: 'auth-storage',

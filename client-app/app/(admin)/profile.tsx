@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -63,7 +63,7 @@ export default function AdminProfileScreen() {
   const handleCallContact = (name: string, number: string) => {
     Alert.alert(
       `Calling ${name}`,
-      `Dialling ${number}...\n\n(Demo mode — real calls not placed)`,
+      `Dialling ${number}...\n\n(Demo mode â€” real calls not placed)`,
       [{ text: 'OK' }]
     );
   };
@@ -80,11 +80,11 @@ export default function AdminProfileScreen() {
     try {
       await Share.share({
         message:
-          "ChildGuard Ghana — Report child labour and trafficking safely and anonymously. Download now to help protect Ghana's children.",
+          "ChildGuard Ghana â€” Report child labour and trafficking safely and anonymously. Download now to help protect Ghana's children.",
         title: 'ChildGuard Ghana',
       });
     } catch (_) {
-      // user dismissed share sheet — no-op
+      // user dismissed share sheet â€” no-op
     }
   };
 
@@ -123,10 +123,10 @@ export default function AdminProfileScreen() {
   };
 
   const statTiles = [
-    { label: 'Total Cases', value: String(stats?.totalCases ?? '—') },
-    { label: 'Resolved / Mo', value: String(stats?.resolvedThisMonth ?? '—') },
+    { label: 'Total Cases', value: String(stats?.totalCases ?? 'â€”') },
+    { label: 'Resolved / Mo', value: String(stats?.resolvedThisMonth ?? 'â€”') },
     { label: 'Officers Active', value: String(officers.length) },
-    { label: 'Avg Response', value: stats ? `${stats.avgResponseHours}h` : '—' },
+    { label: 'Avg Response', value: stats ? `${stats.avgResponseHours}h` : 'â€”' },
   ];
 
   return (
@@ -141,12 +141,12 @@ export default function AdminProfileScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── SCREEN HEADER ── */}
+        {/* â”€â”€ SCREEN HEADER â”€â”€ */}
         <View style={styles.screenHeader}>
           <Text style={styles.screenTitle}>Admin Profile</Text>
         </View>
 
-        {/* ── 1. ADMIN PROFILE CARD ── */}
+        {/* â”€â”€ 1. ADMIN PROFILE CARD â”€â”€ */}
         <GlassCard variant="elevated" style={styles.profileCard}>
           <View style={styles.profileRow}>
             {/* Avatar */}
@@ -178,7 +178,7 @@ export default function AdminProfileScreen() {
           </View>
         </GlassCard>
 
-        {/* ── 2. LANGUAGE ── */}
+        {/* â”€â”€ 2. LANGUAGE â”€â”€ */}
         <GlassCard style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Globe size={16} color={COLORS.primary[300]} />
@@ -211,7 +211,7 @@ export default function AdminProfileScreen() {
           })}
         </GlassCard>
 
-        {/* ── 3. SYSTEM SETTINGS ── */}
+        {/* â”€â”€ 3. SYSTEM SETTINGS â”€â”€ */}
         <GlassCard style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Settings size={16} color={COLORS.primary[300]} />
@@ -239,7 +239,7 @@ export default function AdminProfileScreen() {
 
           <View style={styles.internalDivider} />
 
-          {/* Critical Case Alerts — always on */}
+          {/* Critical Case Alerts â€” always on */}
           <View style={styles.row}>
             <View style={styles.rowIconWrap}>
               <Bell size={18} color={COLORS.emergency[300]} />
@@ -276,7 +276,7 @@ export default function AdminProfileScreen() {
           </View>
         </GlassCard>
 
-        {/* ── 4. DISTRICT OVERVIEW ── */}
+        {/* â”€â”€ 4. DISTRICT OVERVIEW â”€â”€ */}
         <GlassCard variant="gold" style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <BarChart2 size={16} color={COLORS.gold} />
@@ -297,7 +297,7 @@ export default function AdminProfileScreen() {
           </View>
         </GlassCard>
 
-        {/* ── 5. OFFICER ROSTER ── */}
+        {/* â”€â”€ 5. OFFICER ROSTER â”€â”€ */}
         <GlassCard style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Users size={16} color={COLORS.primary[300]} />
@@ -326,7 +326,7 @@ export default function AdminProfileScreen() {
                     {officer.name}
                   </Text>
                   <Text style={styles.officerMeta} numberOfLines={1}>
-                    {officer.badge} · {officer.district}
+                    {officer.badge} Â· {officer.district}
                   </Text>
                 </View>
                 <View style={styles.caseloadBadge}>
@@ -337,7 +337,7 @@ export default function AdminProfileScreen() {
           ))}
         </GlassCard>
 
-        {/* ── 6. EMERGENCY CONTACTS ── */}
+        {/* â”€â”€ 6. EMERGENCY CONTACTS â”€â”€ */}
         <GlassCard variant="emergency" style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Phone size={16} color={COLORS.emergency[300]} />
@@ -373,7 +373,7 @@ export default function AdminProfileScreen() {
           ))}
         </GlassCard>
 
-        {/* ── 7. ABOUT ── */}
+        {/* â”€â”€ 7. ABOUT â”€â”€ */}
         <GlassCard style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Info size={16} color={COLORS.primary[300]} />
@@ -386,7 +386,7 @@ export default function AdminProfileScreen() {
           <View style={[styles.row, styles.rowInfoOnly]}>
             <View style={styles.rowTextWrap}>
               <Text style={styles.rowLabel}>ChildGuard Ghana v1.0.0</Text>
-              <Text style={styles.rowSubLabel}>Hackathon Demo Build</Text>
+              <Text style={styles.rowSubLabel}>v1.0.0 — Ghana NCCP Compliant</Text>
             </View>
           </View>
 
@@ -455,7 +455,7 @@ export default function AdminProfileScreen() {
           </TouchableOpacity>
         </GlassCard>
 
-        {/* ── 8. SIGN OUT ── */}
+        {/* â”€â”€ 8. SIGN OUT â”€â”€ */}
         <TouchableOpacity
           style={styles.signOutButton}
           onPress={handleSignOut}
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.huge,
   },
 
-  // ── Screen header ──
+  // â”€â”€ Screen header â”€â”€
   screenHeader: {
     alignItems: 'center',
     marginBottom: SPACING.xl,
@@ -494,7 +494,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
   },
 
-  // ── Admin profile card ──
+  // â”€â”€ Admin profile card â”€â”€
   profileCard: {
     marginBottom: SPACING.base,
     padding: SPACING.xl,
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
     color: COLORS.gold,
   },
 
-  // ── Generic section card ──
+  // â”€â”€ Generic section card â”€â”€
   sectionCard: {
     marginBottom: SPACING.base,
     borderRadius: RADIUS.xl,
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.base,
   },
 
-  // ── Generic row ──
+  // â”€â”€ Generic row â”€â”€
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 
-  // ── Stats grid ──
+  // â”€â”€ Stats grid â”€â”€
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // ── Officer roster ──
+  // â”€â”€ Officer roster â”€â”€
   officerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -733,7 +733,7 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.mono,
   },
 
-  // ── Emergency contacts ──
+  // â”€â”€ Emergency contacts â”€â”€
   emergencyNumber: {
     color: COLORS.emergency[300],
     fontFamily: FONTS.mono,
@@ -749,7 +749,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
   },
 
-  // ── Sign out ──
+  // â”€â”€ Sign out â”€â”€
   signOutButton: {
     flexDirection: 'row',
     alignItems: 'center',

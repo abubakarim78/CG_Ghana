@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useTimeTick } from '../../hooks/useTimeTick';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { CaseTimelineEvent, CaseStatus } from '../../types/models';
 import { getStatusColor } from '../../utils/colorUtils';
@@ -154,6 +155,7 @@ const STATUS_ORDER: CaseStatus[] = [
 ];
 
 export function CaseTimeline({ timeline, currentStatus }: CaseTimelineProps) {
+  useTimeTick();
   const currentIdx = STATUS_ORDER.indexOf(currentStatus);
 
   return (

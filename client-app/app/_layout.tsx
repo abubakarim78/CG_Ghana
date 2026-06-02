@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Stack } from 'expo-router';
 import { View, StyleSheet, Platform } from 'react-native';
 import {
@@ -13,9 +13,17 @@ import {
   Inter_600SemiBold,
 } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Notifications from 'expo-notifications';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import '../src/i18n/index';
+import {
+  registerForPushNotifications,
+  handleForegroundNotification,
+  handleNotificationResponse,
+} from '../src/services/notificationService';
+import { api } from '../src/services/api';
+import { useAuthStore } from '../src/store/authStore';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -29,16 +37,41 @@ export default function RootLayout() {
     Inter_600SemiBold,
   });
 
+  const user = useAuthStore((s) => s.user);
+  const pushTokenRef = useRef<string | null>(null);
+
+  // Register listeners once on app mount
   useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
+    const foregroundSub = Notifications.addNotificationReceivedListener(
+      handleForegroundNotification
+    );
+    const responseSub = Notifications.addNotificationResponseReceivedListener(
+      handleNotificationResponse
+    );
+
+    registerForPushNotifications().then((token) => {
+      if (token) pushTokenRef.current = token;
+    });
+
+    return () => {
+      foregroundSub.remove();
+      responseSub.remove();
+    };
+  }, []);
+
+  // Save push token to backend whenever a new user session becomes active
+  useEffect(() => {
+    if (user?.id && pushTokenRef.current) {
+      api.auth.savePushToken(pushTokenRef.current).catch(() => {});
     }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (fontsLoaded) SplashScreen.hideAsync();
   }, [fontsLoaded]);
 
   if (!fontsLoaded) {
-    return (
-      <View style={styles.loadingContainer} />
-    );
+    return <View style={styles.loadingContainer} />;
   }
 
   return (
@@ -56,7 +89,6 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    // On web, flex:1 alone doesn't fill viewport — needs explicit height
     ...(Platform.OS === 'web' ? { height: '100%' as unknown as number } : {}),
   },
   loadingContainer: {

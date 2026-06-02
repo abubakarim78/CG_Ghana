@@ -31,6 +31,7 @@ interface ReportsState {
   addReport: (report: Case) => void;
   updateDraft: (partial: Partial<ReportDraft>) => void;
   resetDraft: () => void;
+  clearMyReports: () => void;
   setStep: (n: number) => void;
   submitDraft: () => Promise<Case>;
   getReportById: (id: string) => Case | undefined;
@@ -52,6 +53,8 @@ export const useReportsStore = create<ReportsState>()(
         set((state) => ({ draft: { ...state.draft, ...partial } })),
 
       resetDraft: () => set({ draft: INITIAL_DRAFT, currentStep: 0 }),
+
+      clearMyReports: () => set({ myReports: [], draft: INITIAL_DRAFT, currentStep: 0 }),
 
       setStep: (n: number) => set({ currentStep: n }),
 

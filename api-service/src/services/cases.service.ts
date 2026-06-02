@@ -24,7 +24,7 @@ export const casesService = {
       isEmergency: input.isEmergency,
     });
 
-    const caseNumber = generateCaseNumber();
+    const caseNumber = await generateCaseNumber();
 
     const newCase = await prisma.case.create({
       data: {
@@ -57,6 +57,25 @@ export const casesService = {
       include: { timeline: true, assignedOfficer: true },
     });
 
+    // Push notifications based on priority
+    const notifData = { caseId: newCase.id, caseNumber: newCase.caseNumber };
+    if (newCase.isEmergency) {
+      // SOS cases are handled by emergency.service — skip here
+    } else if (priority === 'critical' || priority === 'high') {
+      await pushService.sendToAllStaff(
+        priority === 'critical' ? '🔴 Critical Case Submitted' : '🟠 High Priority Case',
+        `New ${priority} case #${caseNumber} — ${input.type.replace(/_/g, ' ')} in ${input.location.district}.`,
+        notifData
+      );
+    } else {
+      // Medium / low — notify admins only
+      await pushService.sendToAllAdmins(
+        '📋 New Case Submitted',
+        `Case #${caseNumber} — ${input.type.replace(/_/g, ' ')} in ${input.location.district}.`,
+        notifData
+      );
+    }
+
     return newCase;
   },
 
@@ -84,6 +103,13 @@ export const casesService = {
   async getById(id: string) {
     return prisma.case.findUnique({
       where: { id },
+      include: { timeline: { orderBy: { timestamp: 'asc' } }, assignedOfficer: true, reporter: { select: { id: true, name: true, phone: true } } },
+    });
+  },
+
+  async getByNumber(caseNumber: string) {
+    return prisma.case.findUnique({
+      where: { caseNumber },
       include: { timeline: { orderBy: { timestamp: 'asc' } }, assignedOfficer: true, reporter: { select: { id: true, name: true, phone: true } } },
     });
   },

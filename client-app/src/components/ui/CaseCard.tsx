@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import { useTimeTick } from '../../hooks/useTimeTick';
 import { GlassCard } from '../glass/GlassCard';
 import { CaseBadge } from './CaseBadge';
 import { Case } from '../../types/models';
@@ -15,6 +16,7 @@ interface CaseCardProps {
 }
 
 export function CaseCard({ caseItem, onPress, showOfficer = false }: CaseCardProps) {
+  useTimeTick(); // re-render every minute to keep relative times accurate
   const priorityColor = getPriorityColor(caseItem.priority);
 
   return (

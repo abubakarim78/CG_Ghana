@@ -25,7 +25,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw Object.assign(new Error(data.error ?? 'Request failed'), { status: res.status });
+  if (!res.ok) {
+    // Zod validation errors — build a readable message from field issues
+    let message = data.error ?? 'Request failed';
+    if (data.issues && typeof data.issues === 'object') {
+      const fields = Object.entries(data.issues as Record<string, string[]>)
+        .map(([field, msgs]) => `${field}: ${(msgs as string[]).join(', ')}`)
+        .join('\n');
+      if (fields) message = fields;
+    }
+    throw Object.assign(new Error(message), { status: res.status });
+  }
   return data as T;
 }
 
@@ -42,9 +52,47 @@ export interface AuthResponse {
   user: AuthUser;
 }
 
+// Maps the flat Prisma response shape to the nested Case shape the app uses
+function transformCase(c: any) {
+  return {
+    id: c.id,
+    caseNumber: c.caseNumber,
+    type: c.type,
+    childAge: c.childAge,
+    childGender: c.childGender,
+    location: {
+      district: c.district,
+      region: c.region,
+      lat: c.lat,
+      lng: c.lng,
+      description: c.locationDescription ?? undefined,
+    },
+    description: c.description,
+    photos: c.photos ?? [],
+    isAnonymous: c.isAnonymous,
+    isEmergency: c.isEmergency,
+    status: c.status,
+    priority: c.priority,
+    riskScore: c.riskScore,
+    reportedAt: c.reportedAt,
+    updatedAt: c.updatedAt,
+    assignedOfficerId: c.assignedOfficerId ?? undefined,
+    assignedOfficerName: c.assignedOfficer?.name ?? undefined,
+    timeline: (c.timeline ?? []).map((t: any) => ({
+      id: t.id,
+      status: t.status,
+      timestamp: t.timestamp,
+      title: t.title,
+      description: t.description,
+      officerName: t.officerName ?? undefined,
+      isSystemEvent: t.isSystemEvent,
+    })),
+  };
+}
+
 export const api = {
   auth: {
-    register: (body: { name: string; phone: string; password: string }) =>
+    register: (body: { name: string; phone: string; password: string; role?: string }) =>
       request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
 
     login: (phone: string, password: string) =>
@@ -58,18 +106,28 @@ export const api = {
   },
 
   cases: {
-    list: (params?: { status?: string; priority?: string; region?: string }) => {
+    list: async (params?: { status?: string; priority?: string; region?: string }) => {
       const entries = Object.entries(params ?? {}).filter(([, v]) => v);
       const q = entries.length ? '?' + new URLSearchParams(Object.fromEntries(entries)).toString() : '';
-      return request<any[]>(`/cases${q}`);
+      const data = await request<any[]>(`/cases${q}`);
+      return data.map(transformCase);
     },
-    getById: (id: string) => request<any>(`/cases/${id}`),
-    submit: (body: any) =>
-      request<any>('/cases', { method: 'POST', body: JSON.stringify(body) }),
-    updateStatus: (id: string, status: string, note: string) =>
-      request<any>(`/cases/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, note }) }),
-    assign: (caseId: string, officerId: string) =>
-      request<any>(`/cases/${caseId}/assign`, { method: 'PATCH', body: JSON.stringify({ officerId }) }),
+    getById: async (id: string) => {
+      const data = await request<any>(`/cases/${id}`);
+      return transformCase(data);
+    },
+    submit: async (body: any) => {
+      const data = await request<any>('/cases', { method: 'POST', body: JSON.stringify(body) });
+      return transformCase(data);
+    },
+    updateStatus: async (id: string, status: string, note: string) => {
+      const data = await request<any>(`/cases/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, note }) });
+      return transformCase(data);
+    },
+    assign: async (caseId: string, officerId: string) => {
+      const data = await request<any>(`/cases/${caseId}/assign`, { method: 'PATCH', body: JSON.stringify({ officerId }) });
+      return transformCase(data);
+    },
   },
 
   officers: {
@@ -84,8 +142,13 @@ export const api = {
   },
 
   emergency: {
-    triggerSOS: (body: any) =>
-      request<{ case: any; assignedOfficer: any }>('/emergency/sos', { method: 'POST', body: JSON.stringify(body) }),
+    triggerSOS: async (body: any) => {
+      const data = await request<{ case: any; assignedOfficer: any }>('/emergency/sos', { method: 'POST', body: JSON.stringify(body) });
+      return {
+        case: data.case ? transformCase(data.case) : null,
+        assignedOfficer: data.assignedOfficer,
+      };
+    },
   },
 
   stats: {

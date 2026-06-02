@@ -24,7 +24,7 @@ const submitSchema = z.object({
   childAge: z.number().int().min(0).max(17),
   childGender: z.enum(['male', 'female', 'unknown']),
   location: locationSchema,
-  description: z.string().min(10),
+  description: z.string().min(1, 'Description is required'),
   photos: z.array(z.string().url()).default([]),
   isAnonymous: z.boolean(),
   isEmergency: z.boolean(),
@@ -68,7 +68,12 @@ router.get('/', authenticate, async (req, res, next) => {
 
 router.get('/:id', authenticate, async (req, res, next) => {
   try {
-    const c = await casesService.getById(req.params.id);
+    const param = req.params.id;
+    // Accept both internal cuid and human-readable case number (e.g. CG-2026-00001)
+    const c = param.startsWith('CG-')
+      ? await casesService.getByNumber(param)
+      : await casesService.getById(param);
+
     if (!c) { res.status(404).json({ error: 'Not found' }); return; }
 
     // reporters can only view their own

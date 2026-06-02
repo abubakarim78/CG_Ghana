@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { api } from '../services/api';
+import { useReportsStore } from './reportsStore';
 
 export type EmergencyPhase =
   | 'idle'
@@ -15,6 +16,7 @@ interface EmergencyState {
   description: string;
   assignedOfficerName: string | null;
   caseId: string | null;
+  caseNumber: string | null;
   setPhase: (phase: EmergencyPhase) => void;
   setHoldProgress: (progress: number) => void;
   setDescription: (description: string) => void;
@@ -28,6 +30,7 @@ export const useEmergencyStore = create<EmergencyState>((set) => ({
   description: '',
   assignedOfficerName: null,
   caseId: null,
+  caseNumber: null,
 
   setPhase: (phase) => set({ phase }),
   setHoldProgress: (progress) => set({ holdProgress: progress }),
@@ -42,10 +45,19 @@ export const useEmergencyStore = create<EmergencyState>((set) => ({
         isAnonymous: false,
         dangerTriage: { withPerp: true, recentViolence: true, noBasicNeeds: false },
       });
+
+      const sosCase = result.case;
+
+      // Add to reporter's local report history so it shows on the Track screen
+      if (sosCase) {
+        useReportsStore.getState().addReport(sosCase);
+      }
+
       set({
         phase: 'officer_found',
         assignedOfficerName: result.assignedOfficer?.name ?? 'An officer',
-        caseId: result.case?.id ?? null,
+        caseId: sosCase?.id ?? null,
+        caseNumber: sosCase?.caseNumber ?? null,
       });
     } catch {
       set({ phase: 'error' });
@@ -53,5 +65,12 @@ export const useEmergencyStore = create<EmergencyState>((set) => ({
   },
 
   reset: () =>
-    set({ phase: 'idle', holdProgress: 0, description: '', assignedOfficerName: null, caseId: null }),
+    set({
+      phase: 'idle',
+      holdProgress: 0,
+      description: '',
+      assignedOfficerName: null,
+      caseId: null,
+      caseNumber: null,
+    }),
 }));

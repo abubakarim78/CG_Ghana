@@ -60,9 +60,13 @@ export const useCasesStore = create<CasesState>((set, get) => ({
     }
   },
 
-  getCaseById: (id: string) => get().cases.find((c) => c.id === id),
+  getCaseById: (id: string) =>
+    get().cases.find((c) => c.id === id || c.caseNumber === id),
 
   fetchCaseById: async (id: string) => {
+    // Check local cache first (by id or caseNumber)
+    const cached = get().cases.find((c) => c.id === id || c.caseNumber === id);
+    if (cached) return cached;
     try {
       return await api.cases.getById(id);
     } catch {
