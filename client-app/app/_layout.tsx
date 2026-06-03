@@ -49,9 +49,9 @@ export default function RootLayout() {
       handleNotificationResponse
     );
 
-    registerForPushNotifications().then((token) => {
-      if (token) pushTokenRef.current = token;
-    });
+    registerForPushNotifications()
+      .then((token) => { if (token) pushTokenRef.current = token; })
+      .catch(() => {}); // never let push setup crash the app
 
     return () => {
       foregroundSub.remove();

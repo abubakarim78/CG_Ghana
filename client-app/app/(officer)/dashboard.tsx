@@ -35,20 +35,17 @@ import { Case, CaseStatus } from '../../src/types/models';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-type FilterTab = 'all' | 'mine' | 'active' | 'critical' | 'resolved';
+type FilterTab = 'all' | 'active' | 'critical' | 'resolved';
 
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: 'all', label: 'All' },
-  { key: 'mine', label: 'Mine' },
   { key: 'active', label: 'Active' },
   { key: 'critical', label: 'Critical' },
   { key: 'resolved', label: 'Resolved' },
 ];
 
-function filterCases(cases: Case[], tab: FilterTab, officerId?: string): Case[] {
+function filterCases(cases: Case[], tab: FilterTab): Case[] {
   switch (tab) {
-    case 'mine':
-      return cases.filter((c) => officerId && c.assignedOfficerId === officerId);
     case 'active':
       return cases.filter((c) =>
         ['assigned', 'investigating', 'intervention'].includes(c.status)
@@ -74,19 +71,15 @@ export default function OfficerDashboardScreen() {
   }, []);
 
   const officer = officers.find((o: any) => o.id === user?.officerId);
-  const myOfficerId: string | undefined = user?.officerId ?? officer?.id;
 
-  // All cases are visible; "Mine" tab narrows to assigned cases
-  const filteredCases = filterCases(cases, activeTab, myOfficerId);
+  // API already scopes the list to this officer's assignments
+  const filteredCases = filterCases(cases, activeTab);
 
-  // Stats computed from all cases
-  const myCases = myOfficerId
-    ? cases.filter((c) => c.assignedOfficerId === myOfficerId)
-    : [];
-  const assignedCount = myCases.filter((c) =>
+  // Stats
+  const assignedCount = cases.filter((c) =>
     ['assigned', 'investigating', 'intervention'].includes(c.status)
   ).length;
-  const pendingReviewCount = cases.filter((c) => c.status === 'submitted').length;
+  const pendingReviewCount = cases.filter((c) => c.status === 'assigned').length;
   const resolvedThisMonth = officer?.resolvedThisMonth ?? 0;
   const criticalCount = cases.filter((c) => c.priority === 'critical').length;
 

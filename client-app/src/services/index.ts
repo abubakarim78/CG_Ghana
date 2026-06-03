@@ -1,3 +1,3 @@
 export { api } from './api';
-export { scheduleCaseProgressNotifications } from './notificationService';
+export { registerForPushNotifications } from './notificationService';
 export { computeRiskScore, getRiskTierFromScore, shouldAutoEscalate } from './riskScoring';

@@ -53,12 +53,35 @@ router.get('/', authenticate, async (req, res, next) => {
     const { status, priority, region } = req.query as Record<string, string>;
     const user = req.user!;
 
+    let officerFilter: { officerId?: string } = {};
+
+    if (user.role === 'reporter') {
+      // reporters only see their own submitted cases
+      const cases = await casesService.list({
+        status: status as CaseStatus | undefined,
+        priority: priority as CasePriority | undefined,
+        region,
+        reporterId: user.sub,
+      });
+      return res.json(cases);
+    }
+
+    if (user.role === 'officer') {
+      // officers only see cases assigned to them
+      const { prisma } = await import('../db');
+      const officer = await prisma.officer.findUnique({
+        where: { userId: user.sub },
+        select: { id: true },
+      });
+      if (officer) officerFilter = { officerId: officer.id };
+    }
+
+    // admins see all cases (no extra filter)
     const cases = await casesService.list({
       status: status as CaseStatus | undefined,
       priority: priority as CasePriority | undefined,
       region,
-      // reporters only see their own cases
-      ...(user.role === 'reporter' ? { reporterId: user.sub } : {}),
+      ...officerFilter,
     });
     res.json(cases);
   } catch (err) {
